@@ -1,4 +1,5 @@
 require "spec_helper"
+require 'pry'
 
 RSpec.describe "Rollout" do
   before do
@@ -245,8 +246,8 @@ RSpec.describe "Rollout" do
       expect(@rollout).to be_active(:chat)
     end
 
-    it "sets @data to empty hash" do
-      expect(@rollout.get(:chat).data).to eq({})
+    it "sets @data to only updated_at" do
+      expect(@rollout.get(:chat).data).to eq({'updated_at' => Time.now.strftime(Rollout::TIME_FORMAT)})
     end
   end
 
@@ -415,6 +416,7 @@ RSpec.describe "Rollout" do
 
   describe "#get" do
     before do
+      # binding.pry
       @rollout.activate_percentage(:chat, 10)
       @rollout.activate_group(:chat, :caretakers)
       @rollout.activate_group(:chat, :greeters)
@@ -427,16 +429,19 @@ RSpec.describe "Rollout" do
       expect(feature.groups).to eq [:caretakers, :greeters]
       expect(feature.percentage).to eq 10
       expect(feature.users).to eq %w(42)
+      expect(feature.data['updated_at']).to eq(Time.now.strftime(Rollout::TIME_FORMAT))
       expect(feature.to_hash).to eq(
         groups: [:caretakers, :greeters],
         percentage: 10,
-        users: %w(42)
+        users: %w(42),
+        data: { 'updated_at' => Time.now.strftime(Rollout::TIME_FORMAT) }
       )
 
       feature = @rollout.get(:signup)
       expect(feature.groups).to be_empty
       expect(feature.users).to be_empty
       expect(feature.percentage).to eq(100)
+      expect(feature.data['updated_at']).to eq(Time.now.strftime(Rollout::TIME_FORMAT))
     end
 
     it "returns the feature objects using sets" do
@@ -447,16 +452,19 @@ RSpec.describe "Rollout" do
       expect(feature.groups).to eq [:caretakers, :greeters].to_set
       expect(feature.percentage).to eq 10
       expect(feature.users).to eq %w(42).to_set
+      expect(feature.data['updated_at']).to eq(Time.now.strftime(Rollout::TIME_FORMAT))
       expect(feature.to_hash).to eq(
         groups: [:caretakers, :greeters].to_set,
         percentage: 10,
-        users: %w(42).to_set
+        users: %w(42).to_set,
+        data: { 'updated_at' => Time.now.strftime(Rollout::TIME_FORMAT) }
       )
 
       feature = @rollout.get(:signup)
       expect(feature.groups).to be_empty
       expect(feature.users).to be_empty
       expect(feature.percentage).to eq(100)
+      expect(feature.data['updated_at']).to eq(Time.now.strftime(Rollout::TIME_FORMAT))
     end
   end
 
@@ -474,7 +482,8 @@ RSpec.describe "Rollout" do
         expect(@rollout.get(feature).to_hash).to eq(
           percentage: 0,
           users: [],
-          groups: []
+          groups: [],
+          data: {}
         )
       end
     end
@@ -486,7 +495,8 @@ RSpec.describe "Rollout" do
         expect(@rollout.get(feature).to_hash).to eq(
           percentage: 0,
           users: Set.new,
-          groups: Set.new
+          groups: Set.new,
+          data: {}
         )
       end
     end
