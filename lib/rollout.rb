@@ -4,9 +4,11 @@ require 'rollout/version'
 require 'zlib'
 require 'set'
 require 'json'
+require 'pry'
 
 class Rollout
   RAND_BASE = (2**32 - 1) / 100.0
+  TIME_FORMAT = "%Y-%m-%d %H:%M"
 
   class Feature
     attr_accessor :groups, :users, :percentage, :data
@@ -21,6 +23,7 @@ class Rollout
         @percentage = raw_percentage.to_f
         @users = users_from_string(raw_users)
         @groups = groups_from_string(raw_groups)
+        # @updated_at = Time.now.strftime(Rollout::TIME_FORMAT)
         @data = raw_data.nil? || raw_data.strip.empty? ? {} : JSON.parse(raw_data)
       else
         clear
@@ -74,7 +77,8 @@ class Rollout
       {
         percentage: @percentage,
         groups: @groups,
-        users: @users
+        users: @users,
+        data: @data
       }
     end
 
@@ -144,6 +148,7 @@ class Rollout
   def activate(feature)
     with_feature(feature) do |f|
       f.percentage = 100
+      f.data[:updated_at] = Time.now.strftime(Rollout::TIME_FORMAT)
     end
   end
 
@@ -162,6 +167,7 @@ class Rollout
     with_feature(feature) do |f|
       if desired_state
         f.percentage = 100
+        f.data[:updated_at] = Time.now.strftime(Rollout::TIME_FORMAT)
       else
         f.clear
       end
@@ -232,12 +238,14 @@ class Rollout
   def activate_percentage(feature, percentage)
     with_feature(feature) do |f|
       f.percentage = percentage
+      f.data[:updated_at] = Time.now.strftime(Rollout::TIME_FORMAT)
     end
   end
 
   def deactivate_percentage(feature)
     with_feature(feature) do |f|
       f.percentage = 0
+      f.data[:updated_at] = Time.now.strftime(Rollout::TIME_FORMAT)
     end
   end
 
@@ -253,6 +261,7 @@ class Rollout
 
   def set_feature_data(feature, data)
     with_feature(feature) do |f|
+      f.data[:updated_at] = Time.now.strftime(Rollout::TIME_FORMAT)
       f.data.merge!(data) if data.is_a? Hash
     end
   end
